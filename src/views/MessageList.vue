@@ -22,10 +22,24 @@
               :value="chat.unreadCount" 
               :hidden="chat.unreadCount === 0"
             ></el-badge>
+            <el-button 
+              v-if="chat.canRate" 
+              size="small" 
+              type="primary" 
+              @click.stop="openRatingDialog(chat)"
+            >
+              评价
+            </el-button>
           </div>
         </div>
       </el-card>
     </div>
+    <rating-dialog
+      :visible.sync="ratingDialogVisible"
+      :transaction-id="currentTransaction.transactionId"
+      :to-user-id="currentTransaction.userId"
+      @success="handleRatingSuccess"
+    ></rating-dialog>
   </div>
 </template>
 
@@ -34,16 +48,23 @@ import { mapState } from 'vuex'
 import NavBar from '@/components/NavBar.vue'
 import { formatDate } from '@/utils/date'
 import { getMessages, markAsRead, getUnreadCount } from '@/api/message'
+import RatingDialog from '@/components/RatingDialog.vue'
 
 export default {
   name: 'MessageList',
   components: {
-    NavBar
+    NavBar,
+    RatingDialog
   },
   data() {
     return {
       chatList: [],
-      loading: false
+      loading: false,
+      ratingDialogVisible: false,
+      currentTransaction: {
+        transactionId: null,
+        userId: null
+      }
     }
   },
   computed: {
@@ -104,7 +125,9 @@ export default {
             avatar: otherUser.avatar,
             lastMessage: msg.content,
             lastMessageTime: msg.createTime,
-            unreadCount: msg.senderId !== this.userInfo.id && !msg.isRead ? 1 : 0
+            unreadCount: msg.senderId !== this.userInfo.id && !msg.isRead ? 1 : 0,
+            canRate: msg.transactionId && !msg.isRated,
+            transactionId: msg.transactionId
           })
         } else {
           const chat = chatMap.get(otherUserId)
@@ -120,6 +143,16 @@ export default {
       
       return Array.from(chatMap.values())
         .sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime))
+    },
+    openRatingDialog(chat) {
+      this.currentTransaction = {
+        transactionId: chat.transactionId,
+        userId: chat.userId
+      }
+      this.ratingDialogVisible = true
+    },
+    handleRatingSuccess() {
+      this.fetchMessages()
     }
   }
 }
@@ -143,6 +176,7 @@ export default {
   padding: 15px;
   cursor: pointer;
   transition: background-color 0.3s;
+  position: relative;
 }
 
 .chat-item:hover {
@@ -176,5 +210,12 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.el-button {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 </style> 

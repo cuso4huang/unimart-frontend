@@ -80,6 +80,11 @@ const routes = [
     name: 'MessagePanel',
     component: () => import('@/views/MessagePanel.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/transaction-record',
+    name: 'TransactionRecord',
+    component: () => import('@/views/TransactionRecord.vue')
   }
 ]
 

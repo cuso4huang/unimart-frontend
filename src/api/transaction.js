@@ -88,4 +88,14 @@ export function getTransactionsByProduct(productId) {
     url: `/transactions/product/${productId}`,
     method: 'get'
   })
+}
+
+/**
+ * 获取交易记录列表
+ */
+export function getTransactionList() {
+  return request({
+    url: '/api/transactions',
+    method: 'get'
+  })
 } 
