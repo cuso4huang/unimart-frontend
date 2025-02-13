@@ -26,9 +26,11 @@
         <el-upload
           action="/api/upload"
           list-type="picture-card"
+          :http-request="customUpload"
           :on-success="handleUploadSuccess"
           :on-remove="handleRemove"
           :before-upload="beforeUpload"
+          :file-list="fileList"
         >
           <i class="el-icon-plus"></i>
         </el-upload>
@@ -46,6 +48,7 @@
 
 <script>
 import { createReview } from '@/api/review'
+import { uploadImage } from '@/api/upload'
 
 export default {
   name: 'RatingDialog',
@@ -74,7 +77,8 @@ export default {
         comment: '',
         imageUrls: []
       },
-      submitting: false
+      submitting: false,
+      fileList: []
     }
   },
   methods: {
@@ -88,14 +92,34 @@ export default {
         comment: '',
         imageUrls: []
       }
+      this.fileList = []
     },
-    handleUploadSuccess(response) {
+    async customUpload({ file }) {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const response = await uploadImage(formData)
+        this.handleUploadSuccess(response, file)
+      } catch (error) {
+        console.error('上传图片失败:', error)
+        this.$message.error('上传图片失败')
+      }
+    },
+    handleUploadSuccess(response, file) {
+      this.fileList.push({
+        name: file.name,
+        url: response.url
+      })
       this.form.imageUrls.push(response.url)
     },
     handleRemove(file) {
-      const index = this.form.imageUrls.indexOf(file.url)
-      if (index > -1) {
-        this.form.imageUrls.splice(index, 1)
+      const fileIndex = this.fileList.findIndex(item => item.url === file.url)
+      if (fileIndex > -1) {
+        this.fileList.splice(fileIndex, 1)
+      }
+      const urlIndex = this.form.imageUrls.indexOf(file.url)
+      if (urlIndex > -1) {
+        this.form.imageUrls.splice(urlIndex, 1)
       }
     },
     beforeUpload(file) {

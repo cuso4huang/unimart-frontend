@@ -61,6 +61,16 @@
 
         <!-- 操作按钮区域 -->
         <div class="actions">
+          <!-- 支付按钮 -->
+          <el-button
+            v-if="transaction.transactionStatus === 'PENDING_PAYMENT'"
+            type="primary"
+            @click="handlePay"
+            size="small"
+            :loading="payLoading"
+          >
+            立即支付
+          </el-button>
           <!-- 评价按钮 -->
           <el-button
             v-if="transaction.transactionStatus === 'PAID'"
@@ -74,6 +84,35 @@
       </el-card>
     </div>
 
+    <!-- 支付确认对话框 -->
+    <el-dialog
+      title="确认支付"
+      :visible.sync="payDialogVisible"
+      width="30%"
+    >
+      <div class="payment-confirm">
+        <div class="payment-info">
+          <p>商品：{{ transaction?.product?.productName }}</p>
+          <p class="amount">支付金额：¥{{ transaction?.totalAmount }}</p>
+          <p>支付方式：{{ getPaymentMethodText(transaction?.paymentMethod) }}</p>
+        </div>
+        <div class="payment-notice">
+          <i class="el-icon-warning-outline"></i>
+          <span>这是一个模拟支付过程，点击确认即视为支付成功</span>
+        </div>
+      </div>
+      <span slot="footer">
+        <el-button @click="payDialogVisible = false">取 消</el-button>
+        <el-button 
+          type="primary" 
+          @click="confirmPay"
+          :loading="payLoading"
+        >
+          确认支付
+        </el-button>
+      </span>
+    </el-dialog>
+
     <!-- 评分对话框 -->
     <rating-dialog
       :visible.sync="ratingDialogVisible"
@@ -86,7 +125,7 @@
 </template>
 
 <script>
-import { getTransactionDetail } from '@/api/transaction'
+import { getTransactionDetail, payTransaction } from '@/api/transaction'
 import { formatDate } from '@/utils/date'
 import NavBar from '@/components/NavBar.vue'
 import RatingDialog from '@/components/RatingDialog.vue'
@@ -101,8 +140,10 @@ export default {
   data() {
     return {
       loading: false,
+      payLoading: false,
       transaction: null,
-      ratingDialogVisible: false
+      ratingDialogVisible: false,
+      payDialogVisible: false
     }
   },
   computed: {
@@ -163,6 +204,23 @@ export default {
     handleRatingSuccess() {
       this.fetchTransactionDetail() // 刷新交易详情
       this.$message.success('评价成功')
+    },
+    handlePay() {
+      this.payDialogVisible = true
+    },
+    async confirmPay() {
+      this.payLoading = true
+      try {
+        await payTransaction(this.transaction.transactionId)
+        this.$message.success('支付成功')
+        this.payDialogVisible = false
+        this.fetchTransactionDetail() // 刷新交易详情
+      } catch (error) {
+        console.error('支付失败:', error)
+        this.$message.error('支付失败')
+      } finally {
+        this.payLoading = false
+      }
     }
   }
 }
@@ -204,5 +262,24 @@ export default {
   margin-top: 20px;
   text-align: right;
   padding-right: 20px;
+}
+
+.payment-confirm {
+  padding: 20px;
+}
+
+.payment-info {
+  margin-bottom: 20px;
+}
+
+.payment-notice {
+  display: flex;
+  align-items: center;
+  color: #e6a23c;
+  font-size: 14px;
+}
+
+.payment-notice i {
+  margin-right: 8px;
 }
 </style> 
